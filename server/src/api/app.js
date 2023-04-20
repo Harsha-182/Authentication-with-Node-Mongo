@@ -6,8 +6,8 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const router = require('./routes');
 const { httpErrorHandler, passport } = require('./middlewares');
-
-
+const mongoose = require('mongoose');
+const dbConfig = require('../config/db')
 const app = express();
 
 app.use(cors());
@@ -17,6 +17,17 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use(passport.initialize());
+
+// Connect to the database
+mongoose.connect(dbConfig.url, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('Connected to the database');
+}).catch(err => {
+  console.log('Could not connect to the database. Exiting now...', err);
+  process.exit();
+});
 
 router(app);
 

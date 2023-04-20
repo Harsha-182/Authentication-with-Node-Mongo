@@ -22,6 +22,8 @@ const {
   },
 } = require('../middlewares');
 
+const User = require('../../models/users');
+
 /**
  * @description Route to login users with email and password.
  * @param {string} email
@@ -37,21 +39,20 @@ router.post('/login',
   async (req, res, next) => {
     try {
       const { user } = req;
-      const checkUser = await userController.checkIfUserExists({ id: req.user.id });
+      const checkUser = await User.findOne({ _id: req.user._id });
     
       const token = await user.getJwtToken();
-        
-      await userController.addSessionHistory({userId:checkUser.id, token })
 
       return res.status(200).json(successResponseGenerator({
         accessToken: token,
         userInfo: {
-          id: checkUser.id,
-          name: checkUser.first_name +" "+ checkUser.last_name ,
+          id: checkUser._id,
+          name: checkUser.name ,
           email: checkUser.email,
         },
       }));
     } catch (error) {
+      console.log(error)
       return res.status(500).json(createResponse({
         returnCode: 1,
         errorCode: 'SYSTEM_ERROR',

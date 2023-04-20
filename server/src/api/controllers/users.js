@@ -1,84 +1,32 @@
-/**
- * @module
- * @description User controller. Has all the user related functionality.
- */
+const bcrypt = require('bcrypt');
+const User = require('../../models/users');
 
-const Sequelize = require('sequelize');
+// Seed data
+const seedUsers = [
+  { name:'testUser1', email: 'testuser1@gmail.com', password: 'password1' },
+  { name:'testUser2', email: 'testuser2@gmail.com', password: 'password2' },
+  { name:'testUser3', email: 'testuser3@gmail.com', password: 'password3' }
+];
 
-const { Op } = Sequelize;
-const {
- User,
- Credential, 
- SessionHistory, 
-} = require('../../db/models');
-
-const { v4: uuidv4 } = require('uuid');
-
-
-
-/**
- * @async
- * @description Used to find a user by the condition sepcified in the query object.
- * @param {Object} query - The query to find the user by.
- * @returns {Promise} Promise object representing the user defined by the search query.
- */
-const checkIfUserExists = async (query) => User.findOne({
-
-  where: {
-    ...query,
-  },
-  attributes: ['id', 'first_name', 'last_name', 'email'],
-
+seedUsers.forEach(user => {
+  User.findOne({ email: user.email })
+  .then((existingUser) => {
+    if (!existingUser) {
+      const newUser = new User(user);
+      bcrypt.hash(newUser.password, 10)
+        .then((hash) => {
+          newUser.password = hash;
+          return newUser.save();
+        })
+        .then(() => {
+          console.log('User created successfully');
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 });
-
-/**
- * @async
- * @description Returns a user object along with the credentials.
- * @param {string} userId - UUID representing the user's id.
- * @returns {Promise} Promise object representing the user and his credentials.
- */
-const getUserWithCredentials = async (userId) => User.findOne({
-  where: {
-    id: userId,
-  },
-  include: [Credential],
-});
-
- /**
- * @async
- * @description Fetch the token in session history.
- * @param {STRING} userId Id of the user whose session token needs to be inactive.
- * @param {String} token existing token.
- */
-const fetchToken = async({userId, token}) => {
- return await SessionHistory.findOne({
-   where: {
-     [Op.and]:[
-       {user_id: userId},
-       {access_token: token}
-     ]    },
-   attributes: ['id', 'active_flag']
- })
-}
-
-  /**
-  * @async
-  * @description Used to add the token to session history.
-  * @param {String} userId Id of the user whose session token  needs to be stored.
-  * @param {String} token New token.
-  * @param {String} role User role
-  */
-  const addSessionHistory = async ({userId, token}) => {
-    return await SessionHistory.create({
-     id: uuidv4(),
-     user_id: userId,
-     access_token: token,
-   })
-}
-
- module.exports = {
-  checkIfUserExists,
-  getUserWithCredentials,
-  fetchToken,
-  addSessionHistory,
-};
